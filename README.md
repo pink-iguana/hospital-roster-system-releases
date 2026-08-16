@@ -11,6 +11,18 @@ How artifacts are published
 Artifact naming convention
 -------------------------
 - Windows MSI: `HospitalRosterSystem-<version>-windows-x64.msi` (e.g. `HospitalRosterSystem-1.2.3-windows-x64.msi`).
+- User guide: `HospitalRosterSystem-User-Guide.pdf`.
+- Binary-use licence: `HospitalRosterSystem-BINARY-USE-LICENCE.txt`.
+- Licence bundle: `HospitalRosterSystem-Licences.zip`.
+
+Licensing
+---------
+Hospital Roster System is proprietary software. Use requires prior written
+approval from either owner. The applicable terms are provided in the binary-use
+licence included with new releases.
+
+- Shehzad Hathi: shehzadhathi@outlook.com
+- Durga Chandran: durgachandran@gmail.com
 
 Contact
 -------------------
