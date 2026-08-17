@@ -1,4 +1,4 @@
-Westmead Hospital Roster System — Releases
+Hospital Roster System — Releases
 
 Purpose
 -------
