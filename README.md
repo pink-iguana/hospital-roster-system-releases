@@ -44,7 +44,7 @@ software, publish releases, or access the private source repository.
    `main` is not required for tag launches.
 2. Under **Settings → Secrets and variables → Actions**, add:
    - `MAC_TEST_PASSWORD`: the RustDesk connection password.
-   - `MAC_TEST_ADMIN_PASSWORD`: the temporary Mac login/administrator password.
+   - `MAC_TEST_ADMIN_PASSWORD`: the password for temporary administrator `mac-test-admin`.
    Use separate, unique 16–128 character printable ASCII passwords. Passwords
    are never intentionally logged or uploaded as artifacts. Rotate them after
    testing; do not reuse personal account passwords.
@@ -86,8 +86,9 @@ from the branch dropdown. Until then, use the tag method above.
    the Mac's Downloads folder. No private-repository token is needed here.
 5. Open the DMG, drag the app to Applications, eject the DMG, and launch the
    installed copy. Inspect menus, fonts, light/dark appearance, roster generation
-   and XLSX export. Use `MAC_TEST_ADMIN_PASSWORD` for the logged-in Mac account
-   if a system authentication prompt appears.
+   and XLSX export. If a system authentication prompt appears, enter username
+   `mac-test-admin` and the password stored in `MAC_TEST_ADMIN_PASSWORD`.
+   The desktop remains logged in as the runner user; its password is not reset.
 6. Cancel the workflow when finished, or open Terminal on the remote Mac and run
    `touch ~/Desktop/END-MAC-TEST` for a normal session exit.
 

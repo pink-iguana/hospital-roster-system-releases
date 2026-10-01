@@ -18,15 +18,46 @@ ARCHIVE_SHA256 = 'f7935597b247d42c8f2a2ed71176a9f5868018cd9e1a33b8096418a668c8ca
 APP = Path('/Applications/RustDesk.app')
 DAEMON_LABEL = 'com.carriez.RustDesk_service'
 AGENT_LABEL = 'com.carriez.RustDesk_server'
+ADMIN_USER = 'mac-test-admin'
+
+
+def redact_secrets(message):
+    values = [os.environ.get(name, '') for name in
+              ('MAC_TEST_PASSWORD', 'MAC_TEST_ADMIN_PASSWORD')]
+    for value in sorted(filter(None, values), key=len, reverse=True):
+        message = message.replace(value, '[REDACTED]')
+    return message
 
 
 def run(*args, private=False, check=True, timeout=60):
     result = subprocess.run(list(map(str, args)), capture_output=True, text=True,
                             timeout=timeout)
     if check and result.returncode:
-        detail = '' if private else ': ' + result.stderr.strip()
-        raise RuntimeError(f'{Path(str(args[0])).name} failed{detail}')
+        detail = redact_secrets(result.stderr.strip())
+        # Secret-bearing commands may report useful errors on stdout instead.
+        if private and not detail:
+            detail = redact_secrets(result.stdout.strip())
+        suffix = ': ' + detail if detail else ''
+        raise RuntimeError(f'{Path(str(args[0])).name} failed '
+                           f'(exit {result.returncode}){suffix}')
     return result
+
+
+def create_test_admin(password):
+    # Leave the active runner account intact: resetting its password can require
+    # its existing password/Secure Token credentials, even when running as root.
+    run('sudo', '-n', 'true')
+    if run('id', '-u', ADMIN_USER, check=False).returncode == 0:
+        raise RuntimeError(f'Temporary administrator {ADMIN_USER} already exists')
+    print(f'Creating temporary administrator {ADMIN_USER}', flush=True)
+    run('sudo', '-n', 'sysadminctl', '-addUser', ADMIN_USER,
+        '-fullName', 'macOS Installer Test Administrator',
+        '-password', password, '-admin', private=True)
+    # sysadminctl can exit successfully without creating a usable account.
+    run('dscl', '.', '-authonly', ADMIN_USER, password, private=True)
+    groups = run('id', '-Gn', ADMIN_USER).stdout.split()
+    if 'admin' not in groups:
+        raise RuntimeError('Temporary test account is not an administrator')
 
 
 def grant_permissions(bundle_id, requirement_file):
@@ -77,8 +108,7 @@ def main():
     if console_user != current_user or console_user in ('root', 'loginwindow'):
         raise RuntimeError('Runner has no active desktop for the current user')
     run('launchctl', 'print', f'gui/{uid}')
-    run('sudo', 'dscl', '.', '-passwd', f'/Users/{console_user}',
-        secrets['MAC_TEST_ADMIN_PASSWORD'], private=True)
+    create_test_admin(secrets['MAC_TEST_ADMIN_PASSWORD'])
 
     temporary = Path(os.environ['RUNNER_TEMP'])
     archive = temporary / 'rustdesk.dmg'
@@ -161,7 +191,9 @@ def main():
 RustDesk ID: **{remote_id}**
 
 Use the password you stored in `MAC_TEST_PASSWORD` on your Windows RustDesk client.
-macOS user: `{console_user}`; administrator password: `MAC_TEST_ADMIN_PASSWORD`.
+Desktop user: `{console_user}`.
+For system authentication prompts, use administrator `{ADMIN_USER}` with
+the password stored in `MAC_TEST_ADMIN_PASSWORD`.
 Session deadline: **{deadline}**; job has a 30-minute hard limit.
 
 RustDesk is registered. Confirm screen capture and keyboard/mouse control after
@@ -190,5 +222,5 @@ if __name__ == '__main__':
             message = 'A setup command timed out; ending the session'
         else:
             message = str(error)
-        print('Setup failed: ' + message, file=sys.stderr)
+        print('Setup failed: ' + redact_secrets(message), file=sys.stderr)
         sys.exit(1)
