@@ -1,0 +1,61 @@
+name: macOS Test Desktop
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'mac-desktop-*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-test-desktop
+  cancel-in-progress: true
+
+jobs:
+  desktop:
+    name: Temporary Apple Silicon test desktop
+    runs-on: macos-15
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set session deadline
+        run: |
+          set -euo pipefail
+          echo "MAC_TEST_DEADLINE=$(( $(date +%s) + 25 * 60 ))" >> "$GITHUB_ENV"
+      - name: Start RustDesk test desktop
+        env:
+          MAC_TEST_PASSWORD: ${{ secrets.MAC_TEST_PASSWORD }}
+          MAC_TEST_ADMIN_PASSWORD: ${{ secrets.MAC_TEST_ADMIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          python3 scripts/setup-macos-desktop.py
+      - name: Keep test desktop available
+        run: |
+          set -euo pipefail
+          echo 'Session is available until the deadline in the summary.'
+          echo 'Cancel this run or create END-MAC-TEST on the Mac Desktop to end early.'
+          while [ "$(date +%s)" -lt "$MAC_TEST_DEADLINE" ]; do
+            if [ -e "$HOME/Desktop/END-MAC-TEST" ]; then
+              echo 'Manual testing finished.'
+              break
+            fi
+            if ! pgrep -f '/Applications/RustDesk.app/Contents/MacOS/' >/dev/null; then
+              echo 'RustDesk stopped; ending the session.' >&2
+              exit 1
+            fi
+            sleep 10
+          done
+      - name: Stop remote desktop
+        if: always()
+        run: |
+          set -euo pipefail
+          sudo launchctl bootout system/com.carriez.RustDesk_service 2>/dev/null || true
+          launchctl bootout "gui/$(id -u)/com.carriez.RustDesk_server" 2>/dev/null || true
+          sudo pkill -f '/Applications/RustDesk.app/Contents/MacOS/' || true
