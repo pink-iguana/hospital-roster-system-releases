@@ -133,7 +133,8 @@ def main():
     service = APP / 'Contents/MacOS/service'
     if not executable.is_file() or not service.is_file():
         raise RuntimeError('Pinned RustDesk app is missing its executable or service')
-    requirement = run('codesign', '-d', '-r-', APP).stderr
+    # -r- writes requirements to stdout; codesign's status messages use stderr.
+    requirement = run('codesign', '-d', '-r-', APP).stdout
     match = re.search(r'^designated => (.+)$', requirement, re.MULTILINE)
     if not match:
         raise RuntimeError('Could not read RustDesk code-signing requirement')
