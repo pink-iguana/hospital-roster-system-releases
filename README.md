@@ -2,7 +2,7 @@ Hospital Roster System — Releases
 
 Purpose
 -------
-This repository hosts published binary releases (installers) for the Westmead Hospital Roster System. It contains release assets (MSI installers) and release notes created by the main repository CI.
+This repository hosts published binary releases (installers) for the Hospital Roster System. It contains release assets (MSI installers) and release notes created by the main repository CI.
 
 How artifacts are published
 --------------------------
