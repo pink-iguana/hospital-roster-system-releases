@@ -2,7 +2,7 @@ Hospital Roster System — Releases
 
 Purpose
 -------
-This repository hosts published binary releases (installers) for the Westmead Hospital Roster System. It contains release assets (MSI installers) and release notes created by the main repository CI.
+This repository hosts published binary releases (installers) for the Hospital Roster System. It contains release assets (MSI installers) and release notes created by the main repository CI.
 
 How artifacts are published
 --------------------------
@@ -32,4 +32,4 @@ Branch note
 -----------
 The `macos-test-desktop` branch includes the Python scripts and GitHub Actions
 workflow for temporary macOS installer testing. Setup and usage instructions
-are maintained in the [Hospital Roster System repository's `macos-release` branch](https://github.com/pink-iguana/hospital-roster-system/tree/macos-release).
+for the testing environment are maintained in the main repository.
