@@ -17,7 +17,7 @@ jobs:
   desktop:
     name: Temporary Apple Silicon test desktop
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 125
     defaults:
       run:
         shell: bash
@@ -28,7 +28,7 @@ jobs:
       - name: Set session deadline
         run: |
           set -euo pipefail
-          echo "MAC_TEST_DEADLINE=$(( $(date +%s) + 25 * 60 ))" >> "$GITHUB_ENV"
+          echo "MAC_TEST_DEADLINE=$(( $(date +%s) + 120 * 60 ))" >> "$GITHUB_ENV"
       - name: Start RustDesk test desktop
         env:
           MAC_TEST_PASSWORD: ${{ secrets.MAC_TEST_PASSWORD }}

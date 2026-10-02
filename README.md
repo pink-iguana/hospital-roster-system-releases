@@ -33,7 +33,8 @@ Manual macOS installer testing from Windows
 The **macOS Test Desktop** workflow starts a temporary macOS 15 Apple Silicon
 desktop for testing Hospital Roster System through RustDesk on Windows. It is
 started explicitly by a `mac-desktop-*` tag push or the **Run workflow** button.
-It has a 30-minute job limit and ends around 25 minutes after setup starts.
+The session ends two hours after setup starts, with a 125-minute job limit
+to allow cleanup.
 Normal branch commits and pushes do not start a session. Starting another session cancels the previous one. It does not build
 software, publish releases, or access the private source repository.
 

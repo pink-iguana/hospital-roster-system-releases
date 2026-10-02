@@ -261,7 +261,7 @@ Use the password you stored in `MAC_TEST_PASSWORD` on your Windows RustDesk clie
 Desktop user: `{console_user}`.
 For system authentication prompts, use administrator `{ADMIN_USER}` with
 the password stored in `MAC_TEST_ADMIN_PASSWORD`.
-Session deadline: **{deadline}**; job has a 30-minute hard limit.
+Session deadline: **{deadline}**; job has a 125-minute hard limit for cleanup.
 
 RustDesk's desktop service confirmed an online connection during setup.
 Confirm screen capture and keyboard/mouse control after connecting; the setup
