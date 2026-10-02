@@ -3,11 +3,13 @@
 
 import datetime
 import hashlib
+import json
 import os
 from pathlib import Path
 import plistlib
 import re
 import sqlite3
+import socket
 import subprocess
 import sys
 import time
@@ -58,6 +60,78 @@ def create_test_admin(password):
     groups = run('id', '-Gn', ADMIN_USER).stdout.split()
     if 'admin' not in groups:
         raise RuntimeError('Temporary test account is not an administrator')
+
+
+def read_desktop_status(address=None):
+    # RustDesk 1.4.9's main IPC uses tagged JSON with BytesCodec framing.
+    # Query the desktop user's actual --server process, rather than accepting
+    # --get-id's fallback to a stored ID in a separate root configuration.
+    address = address or f'/tmp/RustDesk-{os.getuid()}/ipc'
+    deadline = time.monotonic() + 5
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+        connection.settimeout(5)
+        connection.connect(address)
+
+        def receive_exact(size):
+            result = bytearray()
+            while len(result) < size:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise RuntimeError('RustDesk desktop status query timed out')
+                connection.settimeout(remaining)
+                chunk = connection.recv(size - len(result))
+                if not chunk:
+                    raise RuntimeError('RustDesk desktop status connection closed')
+                result.extend(chunk)
+            return bytes(result)
+
+        def query(kind, content):
+            payload = json.dumps({'t': kind, 'c': content}, separators=(',', ':')).encode()
+            # These two read-only queries fit in a one-byte frame header.
+            connection.sendall(bytes([len(payload) << 2]) + payload)
+            while True:
+                first = receive_exact(1)
+                width = (first[0] & 3) + 1
+                header = first + receive_exact(width - 1)
+                size = int.from_bytes(header, 'little') >> 2
+                if not 0 < size <= 65536:
+                    raise RuntimeError('Invalid RustDesk desktop status frame')
+                try:
+                    response = json.loads(receive_exact(size))
+                except (ValueError, UnicodeError) as error:
+                    raise RuntimeError('Invalid RustDesk desktop status response') from error
+                if isinstance(response, dict) and response.get('t') == kind:
+                    return response.get('c')
+
+        config = query('Config', ['id', None])
+        state = query('OnlineStatus', None)
+    if (not isinstance(config, list) or len(config) != 2 or config[0] != 'id'
+            or not isinstance(config[1], str)
+            or not re.fullmatch(r'[0-9]{6,16}', config[1]) or not int(config[1])):
+        raise RuntimeError('RustDesk desktop service has no usable ID')
+    if (not isinstance(state, list) or len(state) != 2
+            or type(state[0]) is not int or type(state[1]) is not bool):
+        raise RuntimeError('Invalid RustDesk desktop online status')
+    return config[1], state[0], state[1]
+
+
+def wait_for_desktop_online():
+    last_status = 'Desktop service has not responded'
+    for attempt in range(30):
+        try:
+            remote_id, latency, confirmed = read_desktop_status()
+            last_status = (f'ID={remote_id}, server_latency={latency}, '
+                           f'key_confirmed={confirmed}')
+            if latency > 0 and confirmed:
+                print('RustDesk desktop service is online: ' + last_status, flush=True)
+                return remote_id
+        except (OSError, RuntimeError) as error:
+            last_status = redact_secrets(str(error))
+        if attempt % 5 == 0:
+            print('Waiting for RustDesk network: ' + last_status, flush=True)
+        if attempt < 29:
+            time.sleep(2)
+    raise RuntimeError('RustDesk desktop did not become online; ' + last_status)
 
 
 def grant_permissions(bundle_id, requirement_file):
@@ -176,15 +250,7 @@ def main():
         time.sleep(3)
     if not password_set:
         raise RuntimeError('RustDesk did not confirm the permanent password; ending setup')
-    remote_id = ''
-    for _ in range(12):
-        value = run('sudo', executable, '--get-id', check=False, timeout=10).stdout.strip()
-        if re.fullmatch(r'[0-9]{6,16}', value) and int(value):
-            remote_id = value
-            break
-        time.sleep(3)
-    if not remote_id:
-        raise RuntimeError('RustDesk did not register a usable remote ID')
+    remote_id = wait_for_desktop_online()
     deadline = datetime.datetime.fromtimestamp(int(os.environ['MAC_TEST_DEADLINE']),
                                               datetime.timezone.utc).isoformat()
     summary = f'''## macOS test desktop
@@ -197,8 +263,9 @@ For system authentication prompts, use administrator `{ADMIN_USER}` with
 the password stored in `MAC_TEST_ADMIN_PASSWORD`.
 Session deadline: **{deadline}**; job has a 30-minute hard limit.
 
-RustDesk is registered. Confirm screen capture and keyboard/mouse control after
-connecting; registration alone does not prove GUI access.
+RustDesk's desktop service confirmed an online connection during setup.
+Confirm screen capture and keyboard/mouse control after connecting; the setup
+check does not prove Windows-to-Mac reachability or GUI access.
 
 Transfer the unpublished CI DMG from Windows. No build, release publication or
 access to the private source repository is performed here.

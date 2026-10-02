@@ -50,6 +50,9 @@ software, publish releases, or access the private source repository.
    testing; do not reuse personal account passwords.
 3. Install the official Windows RustDesk client from
    [RustDesk](https://rustdesk.com/download).
+   For the default public servers, sign in under **Settings → Account → Login**
+   using Google or GitHub. This account login is separate from the Mac's
+   RustDesk connection password. Confirm the Windows client shows **Ready**.
 
 ### Launch from the test branch with a tag
 
@@ -111,8 +114,11 @@ warning is expected. Do not disable Gatekeeper to make the test pass.
 ### Limits and implementation
 
 - This is an experimental hosted-runner GUI setup, not a guaranteed remote Mac
-  service. It fails early if there is no active Aqua session or the runner blocks
-  RustDesk's permission setup. Native connection is unverified until the first run.
+  service. It fails early if there is no active Aqua session, the runner blocks
+  RustDesk's permission setup, or the desktop service does not report an online
+  connection and confirmed registration key. Setup reads the ID from the active
+  desktop service; a stored ID alone is insufficient. This does not prove that
+  the Windows client can reach the Mac or that screen/input access works.
 - The script pins RustDesk 1.4.9 and verifies its published asset SHA-256 and app
   signature. It installs launchd services following the pinned RustDesk source.
 - To bootstrap remote access, it writes permission records only for the installed
