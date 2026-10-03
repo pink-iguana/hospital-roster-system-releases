@@ -83,7 +83,8 @@ def probe(app, package, work, run):
     source.write_text('#include <QtCore/QtGlobal>\n#include <cstdio>\n'
                       'int main(){std::puts(qVersion());}\n')
     output = app / 'qt-compliance-version-probe.exe'
-    run(['cl.exe', '/nologo', '/EHsc', '/std:c++17', '/Zc:__cplusplus', '/DQT_CORE_LIB',
+    run(['cl.exe', '/nologo', '/EHsc', '/std:c++17', '/Zc:__cplusplus',
+         '/permissive-', '/DQT_CORE_LIB',
          '/I' + str(package / 'include'), str(source),
          str(package / 'lib/Qt6Core.lib'), '/Fe:' + str(output)], cwd=work)
     try:
