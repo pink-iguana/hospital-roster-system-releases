@@ -101,7 +101,7 @@ def gui(process, evidence, label):
     (evidence / f'{label}-vmmap.txt').write_text(result.stdout)
     paths = set()
     for line in result.stdout.splitlines():
-        match = re.search(r'(/.*(?:libQt6[^/]*\.dylib|libqcocoa\.dylib))\s*$', line)
+        match = re.search(r'\s(/.*(?:libQt6[^/]*\.dylib|libqcocoa\.dylib))\s*$', line)
         if match:
             paths.add(match[1])
     return sorted(paths)
