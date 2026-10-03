@@ -51,8 +51,13 @@ for title in ["Roster", "Preferences"] {
     var selected = false
     let selectionDeadline = Date().addingTimeInterval(10)
     while !selected && Date() < selectionDeadline {
-        let value = attribute(tab, kAXValueAttribute) as? NSNumber
-        selected = value?.boolValue == true
+        // Qt's tab bar implements QAccessibleSelectionInterface. Its page tabs
+        // are radio buttons without AXValue; selection belongs to the parent.
+        if let parent = attribute(tab, kAXParentAttribute) {
+            let tabBar = parent as! AXUIElement
+            let children = attribute(tabBar, kAXSelectedChildrenAttribute) as? [AXUIElement] ?? []
+            selected = children.contains { CFEqual($0, tab) }
+        }
         if !selected { Thread.sleep(forTimeInterval: 0.2) }
     }
     guard selected else { fail("GUI tab selection was not confirmed: " + title) }
