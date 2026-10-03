@@ -148,6 +148,7 @@ class Verification:
 
     @contextmanager
     def stage(self, name):
+        print('Starting verification stage:', name, flush=True)
         self.current = name
         started = time.monotonic()
         self.report['stages'][name]['status'] = 'running'
