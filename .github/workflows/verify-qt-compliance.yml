@@ -1,0 +1,102 @@
+name: Verify Qt compliance
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Native platforms to verify
+        type: choice
+        options: [both, windows, macos]
+        default: both
+      app_tag:
+        description: Application tag (empty selects newest published release, including betas)
+        type: string
+      qt_source_tag:
+        description: Qt source tag (empty selects newest published Qt source)
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qt-compliance-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.resolve.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Resolve immutable public release inputs
+        id: resolve
+        env:
+          APP_TAG: ${{ inputs.app_tag }}
+          QT_SOURCE_TAG: ${{ inputs.qt_source_tag }}
+          VERIFY_PLATFORM: ${{ inputs.platform }}
+        run: python3 scripts/verify_qt_compliance.py resolve --output selection.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: qt-compliance-selection
+          path: selection.json
+          retention-days: 7
+
+  verify:
+    needs: resolve
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.resolve.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v8
+        with:
+          name: qt-compliance-selection
+      - name: Install verification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install conan==2.30.0 pypdf==6.1.1
+          if [ '${{ matrix.platform }}' = windows ]; then
+            python -m pip install pywinauto==0.6.9
+          fi
+      - name: Activate native Windows compiler
+        if: matrix.platform == 'windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Prepare native macOS GUI helper
+        if: matrix.platform == 'macos'
+        run: python3 scripts/qt_compliance_macos.py setup --work "$RUNNER_TEMP/qt-compliance"
+      - name: Verify installed app, source and modified Qt replacement
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/verify_qt_compliance.py verify --platform '${{ matrix.platform }}' \
+            --selection selection.json --work "$RUNNER_TEMP/qt-compliance"
+      - name: Summarise verification
+        if: always()
+        shell: bash
+        run: |
+          if [ ! -f "$RUNNER_TEMP/qt-compliance/evidence/results.json" ]; then
+            python scripts/verify_qt_compliance.py report-setup-failure \
+              --platform '${{ matrix.platform }}' --selection selection.json \
+              --work "$RUNNER_TEMP/qt-compliance"
+          fi
+          cat "$RUNNER_TEMP/qt-compliance/evidence/summary.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: qt-compliance-${{ matrix.platform }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/qt-compliance/evidence/
+          retention-days: 7
+          if-no-files-found: warn
