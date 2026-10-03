@@ -27,6 +27,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+      - name: Test compliance verifier
+        run: python3 -m unittest discover -s scripts -p 'test_*.py' -v
       - name: Resolve immutable public release inputs
         id: resolve
         env:

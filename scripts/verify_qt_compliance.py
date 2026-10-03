@@ -49,6 +49,31 @@ def safe_path(root, name):
     return path
 
 
+def check_guide_notice(pages):
+    """Accept the original opening notice or the guide's signposted licence appendix."""
+    normal = lambda text: ' '.join(text.lower().split())
+    opening = normal(' '.join(pages[:2]))
+    if re.search(r'\bqt\b', opening) and re.search(r'\blgpl\b', opening):
+        return {'layout': 'opening_pages'}
+    if 'licence information and acknowledgements are in appendix d' not in opening:
+        raise RuntimeError('Guide opening pages lack a Qt/LGPL notice or licence appendix reference')
+    for index, page in enumerate(pages):
+        # A contents entry alone is not the appendix: its line ends with a page number.
+        heading = re.search(r'^appendix d: licences and acknowledgements\s*$',
+                            page.lower(), re.MULTILINE)
+        if heading is None:
+            continue
+        appendix = normal(page[heading.end():] + ' ' + ' '.join(pages[index + 1:]))
+        required = ('uses qt', 'gnu lesser general public license version 3',
+                    'qt is copyright the qt company', 'lgpl and gpl texts',
+                    'corresponding-source download', 'rebuild and replace qt')
+        missing = [fragment for fragment in required if fragment not in appendix]
+        if missing:
+            raise RuntimeError('Guide licence appendix notice is incomplete: ' + ', '.join(missing))
+        return {'layout': 'licence_appendix', 'page': index + 1}
+    raise RuntimeError('Referenced guide licence appendix is missing')
+
+
 def newest(releases, pattern, tag=''):
     candidates = [release for release in releases if not release['draft'] and
                   re.fullmatch(pattern, release['tag_name']) and
@@ -320,9 +345,8 @@ class Verification:
         guide = doc_root / self.guide.name
         if digest(guide) != digest(self.guide):
             raise RuntimeError('Installed guide differs from public release')
-        text = ' '.join(page.extract_text() or '' for page in PdfReader(guide).pages[:2]).lower()
-        if 'qt' not in text or 'lgpl' not in text:
-            raise RuntimeError('Prominent Qt/LGPL notice missing from guide opening pages')
+        self.report['guideNotice'] = check_guide_notice(
+            [page.extract_text() or '' for page in PdfReader(guide).pages])
         (self.evidence / 'dependency-manifest.json').write_text(json.dumps(records, indent=2))
 
     def build(self):
