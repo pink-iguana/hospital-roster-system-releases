@@ -28,7 +28,9 @@ def setup(work):
     subprocess.run(['codesign', '--force', '--sign', '-', str(helper.parent)], check=True)
     result = subprocess.run(['codesign', '-d', '-r-', str(helper.parent)],
                             text=True, capture_output=True, check=True)
-    match = re.search(r'designated => (.+)', result.stderr)
+    signing = result.stdout + result.stderr
+    (evidence / 'gui-helper-signature.txt').write_text(signing)
+    match = re.search(r'designated => (.+)', signing)
     if not match:
         raise RuntimeError('No designated requirement for GUI helper')
     requirement = work / 'gui-helper.csreq'
