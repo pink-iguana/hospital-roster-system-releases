@@ -1,31 +1,47 @@
-Hospital Roster System — Releases
+# Hospital Roster System releases
 
-Purpose
--------
-This repository hosts Windows MSI and Apple Silicon macOS DMG releases for
-Hospital Roster System, their documentation/licences and Qt corresponding source.
+[Download the latest stable release](https://github.com/pink-iguana/hospital-roster-system-releases/releases/latest)
+or [browse all releases](https://github.com/pink-iguana/hospital-roster-system-releases/releases).
 
-How artifacts are published
---------------------------
-- The private source repository builds both installers and publishes verified
-  assets here. The public verification workflow below consumes those releases.
+## Install or update
 
-Artifact naming convention
--------------------------
-- Windows MSI: `HospitalRosterSystem-<version>-windows-x64.msi` (e.g. `HospitalRosterSystem-1.2.3-windows-x64.msi`).
-- macOS DMG: `HospitalRosterSystem-<version>-macos-arm64.dmg`.
-- User guide: `HospitalRosterSystem-User-Guide.pdf`.
-- Binary-use licence: `HospitalRosterSystem-BINARY-USE-LICENCE.txt`.
-- Licence bundle: `HospitalRosterSystem-Licences.zip`.
-- Checksums: `SHA256SUMS.txt`.
+| Platform | Installer | How to install |
+| --- | --- | --- |
+| Windows x64 | `HospitalRosterSystem-<version>-windows-x64.msi` | Open the MSI, follow the prompts, and launch **Hospital Roster System** from the Start menu. |
+| Apple Silicon, macOS 15 or later | `HospitalRosterSystem-<version>-macos-arm64.dmg` | Open the DMG, drag **HospitalRosterSystem** into **Applications**, eject the disk image, and launch the installed copy. |
 
-Qt compliance verification
---------------------------
+Quit the app before updating and keep your `.rosterproj` files outside the
+installation folder. In the current app, **File → View Latest Release** opens
+the stable download page. Windows installers are unsigned. The macOS app uses
+ad hoc signing and carries no Apple notarization. Follow your organisation's
+installation policy when your operating system displays a warning.
+
+## Guide, licences, and checksums
+
+- **`HospitalRosterSystem-User-Guide.pdf`** covers the editor, roster generation,
+  Excel export, and command-line use. The same PDF is installed with the app.
+- **`HospitalRosterSystem-BINARY-USE-LICENCE.txt`** contains the terms of use.
+  Use requires prior written approval from either owner. Their contact
+  details are in the licence.
+- **`SHA256SUMS.txt`** lists the SHA-256 fingerprints for the uploaded files.
+  The platform candidate receipts record the source and build details, and the
+  notice indexes list the third-party dependencies. Full notices are installed
+  with the app.
+
+## Earlier Qt releases
+
+The [v3.4.5 release notes](https://github.com/pink-iguana/hospital-roster-system-releases/releases/tag/v3.4.5)
+cover the legacy Qt installers, their licence bundle, and the
+[corresponding Qt source](https://github.com/pink-iguana/hospital-roster-system-releases/releases/tag/qt-6.7.3-source-3).
+
+<details>
+<summary>Historical Qt compliance workflow</summary>
+
 Under **Actions → Verify Qt compliance → Run workflow**, choose Windows, macOS
-or both (the default). Leave the tag inputs empty for the newest published
-application, including betas, and newest published Qt source. Set explicit tags
-to reproduce an earlier pair. A source that differs from the installed app's
-source URL/checksum is rejected, even if it is newer.
+or both. Set both tag inputs explicitly to the legacy application and the
+corresponding Qt source named in its release notes. For example, use
+`v3.4.5` with `qt-6.7.3-source-3`. A source that differs from the installed
+app's source URL or checksum is rejected.
 
 The workflow installs/copies the actual public installer, checks its hashes,
 notices, licence texts, recipient-rights clauses and corresponding source. It
@@ -57,15 +73,8 @@ machines. The macOS application remains ad hoc signed and not notarized.
 
 Local lightweight checks: `python scripts/check_qt_compliance.py` and actionlint.
 
-Licensing
----------
-Hospital Roster System is proprietary software. Use requires prior written
-approval from either owner. The applicable terms are provided in the binary-use
-licence included with new releases.
+</details>
 
-- Shehzad Hathi: shehzadhathi@outlook.com
-- Durga Chandran: durgachandran@gmail.com
+## Contact
 
-Contact
--------------------
-For questions about releases or distribution policy, raise an issue in this repository.
+For questions about releases or distribution, [open an issue](https://github.com/pink-iguana/hospital-roster-system-releases/issues).
